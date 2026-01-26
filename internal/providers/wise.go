@@ -33,42 +33,50 @@ func NewWiseProvider(apiKey, baseURL string) *WiseProvider {
 
 func (w *WiseProvider) Name() string {
 	return "Wise"
-} // Name satisfies the ExchangeProvider interface.
+}
 
 //====== Implementing FetchRates ======
 
 func (w *WiseProvider) FetchRates(base string) ([]models.Rate, error) {
 	url := fmt.Sprintf("%s/v1/rates?source=%s", w.BaseURL, base)
 
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
+	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("Authorization", "Bearer "+w.APIKey)
-	req.Header.Set("User-Agent", "CurrencyRouter/1.0")
 
-	fmt.Printf("DEBUG: Sending request to %s...\n", url)
 	resp, err := w.Client.Do(req)
 	if err != nil {
-		fmt.Printf("Wise API Status: %d for base %s\n", resp.StatusCode, base)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("wise api returned status: %d", resp.StatusCode)
+	var rawRates []struct {
+		Source string  `json:"source"`
+		Target string  `json:"target"`
+		Value  float64 `json:"rate"`
 	}
 
-	var rawRates []WiseResponse
 	if err := json.NewDecoder(resp.Body).Decode(&rawRates); err != nil {
 		return nil, err
 	}
 
 	var rates []models.Rate
 	for _, r := range rawRates {
-		rates = append(rates, models.NewRate(r.Source, r.Target, r.Rate, "Wise"))
-	} // Convert WiseResponse (External) to models.Rate (Internal)
-
+		// In a real production environment, you might hit /v1/prices for top pairs.
+		fee := w.estimateFixedFee(r.Source, r.Target)
+		rates = append(rates, models.NewRate(r.Source, r.Target, r.Value, fee, w.Name()))
+	}
 	return rates, nil
+}
+
+func (w *WiseProvider) estimateFixedFee(source, target string) float64 {
+	switch source {
+	case "USD":
+		return 4.00
+	case "EUR":
+		return 0.50
+	case "GBP":
+		return 0.30
+	default:
+		return 2.00
+	}
 }

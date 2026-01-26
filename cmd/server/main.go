@@ -13,34 +13,37 @@ import (
 )
 
 func main() {
+	fmt.Println("--- Smart Currency Router Engine Starting ---")
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No .env file found, fetching from system environment")
+	// Load Environment Variables
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system env")
 	}
-
-	fmt.Println("--- Currency Router Engine Starting ---")
 
 	apiKey := os.Getenv("WISE_API_KEY")
 	apiURL := os.Getenv("WISE_API_URL")
+
 	if apiKey == "" || apiURL == "" {
-		log.Fatal("Missing environment variables: WISE_API_KEY or WISE_API_URL")
+		log.Fatal("WISE_API_KEY or WISE_API_URL not set in environment")
 	}
 
 	wise := providers.NewWiseProvider(apiKey, apiURL)
-	agg := engine.NewAggregator([]models.ExchangeProvider{wise})
+
+	pList := []models.ExchangeProvider{wise}
+
+	aggregator := engine.NewAggregator(pList)
 	cache := engine.NewMemoryCache()
 
-	h := &engine.RouterHandler{
-		Aggregator: agg,
+	handler := &engine.RouterHandler{
+		Aggregator: aggregator,
 		Cache:      cache,
 	}
-	mux := http.NewServeMux()
 
-	mux.Handle("/v1/calculate", h) // Register the endpoint
+	port := ":8080"
+	http.Handle("/calculate", handler)
 
-	fmt.Println("Server listening on:8080...")
-	if err := http.ListenAndServe(":8080", mux); err != nil {
+	fmt.Printf("Server listening on %s...\n", port)
+	if err := http.ListenAndServe(port, nil); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

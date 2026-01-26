@@ -2,64 +2,90 @@ package engine
 
 import (
 	"errors"
-	"math"
 
 	"github.com/saviotito/currency-router/internal/models"
 )
 
-func FindBestRoute(graph *models.Graph, start, end string) ([]models.Rate, error) {
-	distances := make(map[string]float64)
-	previous := make(map[string]*models.Rate)
+type Router struct {
+	Graph *models.Graph
+}
+
+func NewRouter(g *models.Graph) *Router {
+	return &Router{Graph: g}
+}
+
+func (r *Router) FindBestRoute(from, to string, amount float64) (models.CalculateResponse, error) {
+	maxBalances := make(map[string]float64)
+	parentEdge := make(map[string]models.Rate) // Tracks the edge we took to get to that max balance (for path reconstruction)
+
+	for node := range r.Graph.Edges {
+		maxBalances[node] = 0
+	} // Initialize all balances to 0
+
+	for _, edges := range r.Graph.Edges {
+		for _, edge := range edges {
+			maxBalances[edge.To] = 0
+		}
+	}
+
+	// Starting point
+	maxBalances[from] = amount
+
+	// For simplicity in this step, we use a basic Dijkstra loop.
+	// In a high-traffic app, you'd use a Priority Queue (Heap).
 	visited := make(map[string]bool)
 
-	for node := range graph.Edges {
-		distances[node] = math.Inf(1)
-	} // Initialize distances to Infinity
-
-	distances[end] = math.Inf(1) // The target node might not be a source node in the map, so add it manually
-	distances[start] = 0
-
-	for i := 0; i < len(distances); i++ {
-		u := ""
-		minDist := math.Inf(1)
-
-		for node, dist := range distances {
-			if !visited[node] && dist < minDist {
-				minDist = dist
-				u = node
+	for i := 0; i < len(maxBalances); i++ {
+		// Find the unvisited currency with the HIGHEST current balance
+		curr := ""
+		maxVal := -1.0
+		for c, bal := range maxBalances {
+			if !visited[c] && bal > maxVal {
+				maxVal = bal
+				curr = c
 			}
-		} // Find the unvisited node with the smallest distance
+		}
 
-		if u == "" || u == end {
+		if curr == "" || maxVal <= 0 {
 			break
 		}
-		visited[u] = true
 
-		for _, edge := range graph.Edges[u] {
-			newDist := distances[u] + edge.Weight
-			if newDist < distances[edge.To] {
-				distances[edge.To] = newDist // We store the edge itself so we know which provider gave us this rate
-				edgeCopy := edge
-				previous[edge.To] = &edgeCopy
+		visited[curr] = true
+
+		// Explore neighbors
+		for _, edge := range r.Graph.Edges[curr] {
+			// THE SMART CALCULATION: Apply the fee and rate
+			newBalance := edge.Apply(maxBalances[curr])
+
+			// If this path gives us more money than previously found, update it
+			if newBalance > maxBalances[edge.To] {
+				maxBalances[edge.To] = newBalance
+				parentEdge[edge.To] = edge
 			}
 		}
 	}
 
-	if distances[end] == math.Inf(1) {
-		return nil, errors.New("No route found")
+	// Reconstruct the path from 'to' back to 'from'
+	if maxBalances[to] == 0 {
+		return models.CalculateResponse{}, errors.New("no profitable path found")
 	}
 
+	return r.reconstruct(parentEdge, from, to, maxBalances[to]), nil
+} // FindBestRoute calculates the path that results in the highest final amount.
+
+func (r *Router) reconstruct(parentEdge map[string]models.Rate, from, to string, finalAmount float64) models.CalculateResponse {
 	var path []models.Rate
-	curr := end
-	for previous[curr] != nil {
-		edge := previous[curr]
-		path = append([]models.Rate{*edge}, path...)
+	curr := to
+
+	for curr != from {
+		edge := parentEdge[curr]
+		// Prepend to path
+		path = append([]models.Rate{edge}, path...)
 		curr = edge.From
 	}
 
-	if len(path) == 0 && start != end {
-		return nil, errors.New("No route found")
+	return models.CalculateResponse{
+		Path:        path,
+		FinalAmount: finalAmount,
 	}
-
-	return path, nil
-} //Calculates the optimal path between start and end currencies.
+}
