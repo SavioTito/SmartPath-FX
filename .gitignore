@@ -1,0 +1,9 @@
+# Binaries
+main
+main.exe
+
+# Secrets
+.env
+
+# OS files
+.DS_Store

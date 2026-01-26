@@ -45,6 +45,10 @@ func FindBestRoute(graph *models.Graph, start, end string) ([]models.Rate, error
 		}
 	}
 
+	if distances[end] == math.Inf(1) {
+		return nil, errors.New("No route found")
+	}
+
 	var path []models.Rate
 	curr := end
 	for previous[curr] != nil {

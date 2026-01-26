@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/saviotito/currency-router/internal/models"
 )
@@ -11,18 +12,22 @@ import (
 type WiseResponse struct {
 	Source string  `json:"source"`
 	Target string  `json:"target"`
-	Value  float64 `json:"value"`
+	Rate   float64 `json:"rate"`
 }
 
 type WiseProvider struct {
-	Client *http.Client
-	APIKey string
+	Client  *http.Client
+	APIKey  string
+	BaseURL string
 }
 
-func NewWiseProvider(apiKey string) *WiseProvider {
+func NewWiseProvider(apiKey, baseURL string) *WiseProvider {
 	return &WiseProvider{
-		Client: &http.Client{},
-		APIKey: apiKey,
+		Client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+		APIKey:  apiKey,
+		BaseURL: baseURL,
 	}
 }
 
@@ -33,13 +38,20 @@ func (w *WiseProvider) Name() string {
 //====== Implementing FetchRates ======
 
 func (w *WiseProvider) FetchRates(base string) ([]models.Rate, error) {
-	url := fmt.Sprintf("https://api.wise.com/v1/rates?source=%s", base)
+	url := fmt.Sprintf("%s/v1/rates?source=%s", w.BaseURL, base)
 
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", "Bearer"+w.APIKey)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 
+	req.Header.Set("Authorization", "Bearer "+w.APIKey)
+	req.Header.Set("User-Agent", "CurrencyRouter/1.0")
+
+	fmt.Printf("DEBUG: Sending request to %s...\n", url)
 	resp, err := w.Client.Do(req)
 	if err != nil {
+		fmt.Printf("Wise API Status: %d for base %s\n", resp.StatusCode, base)
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -55,7 +67,7 @@ func (w *WiseProvider) FetchRates(base string) ([]models.Rate, error) {
 
 	var rates []models.Rate
 	for _, r := range rawRates {
-		rates = append(rates, models.NewRate(r.Source, r.Target, r.Value, "Wise"))
+		rates = append(rates, models.NewRate(r.Source, r.Target, r.Rate, "Wise"))
 	} // Convert WiseResponse (External) to models.Rate (Internal)
 
 	return rates, nil
