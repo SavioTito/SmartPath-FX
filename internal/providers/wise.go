@@ -61,22 +61,30 @@ func (w *WiseProvider) FetchRates(base string) ([]models.Rate, error) {
 
 	var rates []models.Rate
 	for _, r := range rawRates {
-		// In a real production environment, you might hit /v1/prices for top pairs.
-		fee := w.estimateFixedFee(r.Source, r.Target)
-		rates = append(rates, models.NewRate(r.Source, r.Target, r.Value, fee, w.Name()))
+		fee, feeCur := w.EstimateFee(r.Source, r.Target, 1000)
+
+		rates = append(rates, models.Rate{
+			From:        r.Source,
+			To:          r.Target,
+			Value:       r.Value,
+			FixedFee:    fee,
+			FeeCurrency: feeCur,
+			Provider:    w.Name(),
+			LastUpdate:  time.Now(),
+		})
 	}
 	return rates, nil
 }
 
-func (w *WiseProvider) estimateFixedFee(source, target string) float64 {
-	switch source {
-	case "USD":
-		return 4.00
-	case "EUR":
-		return 0.50
-	case "GBP":
-		return 0.30
-	default:
-		return 2.00
+func (w *WiseProvider) EstimateFee(source, target string, amount float64) (float64, string) {
+	basePercentage := 0.004
+	flatFee := 2.00
+
+	if amount > 100000 {
+		flatFee = flatFee * 0.8 // 20% discount on fixed portion
 	}
+
+	totalFee := flatFee + (amount * basePercentage)
+
+	return totalFee, source
 }

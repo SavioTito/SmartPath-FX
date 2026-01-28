@@ -2,6 +2,7 @@ package engine
 
 import (
 	"errors"
+	"time"
 
 	"github.com/saviotito/currency-router/internal/models"
 )
@@ -88,4 +89,37 @@ func (r *Router) reconstruct(parentEdge map[string]models.Rate, from, to string,
 		Path:        path,
 		FinalAmount: finalAmount,
 	}
+}
+
+//************ DIRECT *************
+
+func (r *Router) GetDirectRoute(from, to string, amount float64) (float64, float64) {
+	edges := r.Graph.Edges[from]
+	for _, edge := range edges {
+		if edge.To == to {
+			return edge.Apply(amount), edge.FixedFee
+		}
+	}
+	return 0, 0
+}
+
+func CalculateConfidence(path []models.Rate) int {
+	if len(path) == 0 {
+		return 0
+	}
+
+	score := 100
+	now := time.Now()
+
+	for _, edge := range path {
+		diff := now.Sub(edge.LastUpdate).Minutes()
+		if diff > 2 {
+			score -= int(diff * 5) // Drop 5 points per minute over 2 mins
+		}
+	}
+
+	if score < 0 {
+		return 0
+	}
+	return score
 }

@@ -22,16 +22,14 @@ func main() {
 
 	apiKey := os.Getenv("WISE_API_KEY")
 	apiURL := os.Getenv("WISE_API_URL")
-
 	if apiKey == "" || apiURL == "" {
 		log.Fatal("WISE_API_KEY or WISE_API_URL not set in environment")
 	}
-
 	wise := providers.NewWiseProvider(apiKey, apiURL)
 
-	pList := []models.ExchangeProvider{wise}
+	providerList := []models.ExchangeProvider{wise}
 
-	aggregator := engine.NewAggregator(pList)
+	aggregator := engine.NewAggregator(providerList)
 	cache := engine.NewMemoryCache()
 
 	handler := &engine.RouterHandler{

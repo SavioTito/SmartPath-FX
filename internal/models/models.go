@@ -5,12 +5,13 @@ import (
 )
 
 type Rate struct {
-	From       string    `json:"from"`
-	To         string    `json:"to"`
-	Value      float64   `json:"value"`
-	FixedFee   float64   `json:"fixed_fee"`
-	Provider   string    `json:"provider"`
-	LastUpdate time.Time `json:"last_update"`
+	From        string    `json:"from"`
+	To          string    `json:"to"`
+	Value       float64   `json:"value"`
+	FixedFee    float64   `json:"fixed_fee"`
+	FeeCurrency string    `json:"fee_currency"`
+	Provider    string    `json:"provider"`
+	LastUpdate  time.Time `json:"last_update"`
 }
 
 func (r Rate) Apply(amount float64) float64 {
