@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/saviotito/currency-router/internal/models"
+	"github.com/shopspring/decimal"
 )
 
 type Router struct {
@@ -15,17 +16,17 @@ func NewRouter(g *models.Graph) *Router {
 	return &Router{Graph: g}
 }
 
-func (r *Router) FindBestRoute(from, to string, amount float64) (models.CalculateResponse, error) {
-	maxBalances := make(map[string]float64)
+func (r *Router) FindBestRoute(from, to string, amount decimal.Decimal) (models.CalculateResponse, error) {
+	maxBalances := make(map[string]decimal.Decimal)
 	parentEdge := make(map[string]models.Rate) // Tracks the edge we took to get to that max balance (for path reconstruction)
 
 	for node := range r.Graph.Edges {
-		maxBalances[node] = 0
+		maxBalances[node] = decimal.Zero
 	} // Initialize all balances to 0
 
 	for _, edges := range r.Graph.Edges {
 		for _, edge := range edges {
-			maxBalances[edge.To] = 0
+			maxBalances[edge.To] = decimal.Zero
 		}
 	}
 
@@ -39,15 +40,15 @@ func (r *Router) FindBestRoute(from, to string, amount float64) (models.Calculat
 	for i := 0; i < len(maxBalances); i++ {
 		// Find the unvisited currency with the HIGHEST current balance
 		curr := ""
-		maxVal := -1.0
+		maxVal := decimal.NewFromInt(-1)
 		for c, bal := range maxBalances {
-			if !visited[c] && bal > maxVal {
+			if !visited[c] && bal.GreaterThan(maxVal) {
 				maxVal = bal
 				curr = c
 			}
 		}
 
-		if curr == "" || maxVal <= 0 {
+		if curr == "" || maxVal.LessThanOrEqual(decimal.Zero) {
 			break
 		}
 
@@ -59,7 +60,7 @@ func (r *Router) FindBestRoute(from, to string, amount float64) (models.Calculat
 			newBalance := edge.Apply(maxBalances[curr])
 
 			// If this path gives us more money than previously found, update it
-			if newBalance > maxBalances[edge.To] {
+			if newBalance.GreaterThan(maxBalances[edge.To]) {
 				maxBalances[edge.To] = newBalance
 				parentEdge[edge.To] = edge
 			}
@@ -67,14 +68,14 @@ func (r *Router) FindBestRoute(from, to string, amount float64) (models.Calculat
 	}
 
 	// Reconstruct the path from 'to' back to 'from'
-	if maxBalances[to] == 0 {
+	if maxBalances[to].IsZero() {
 		return models.CalculateResponse{}, errors.New("no profitable path found")
 	}
 
 	return r.reconstruct(parentEdge, from, to, maxBalances[to]), nil
 } // FindBestRoute calculates the path that results in the highest final amount.
 
-func (r *Router) reconstruct(parentEdge map[string]models.Rate, from, to string, finalAmount float64) models.CalculateResponse {
+func (r *Router) reconstruct(parentEdge map[string]models.Rate, from, to string, finalAmount decimal.Decimal) models.CalculateResponse {
 	var path []models.Rate
 	curr := to
 
@@ -93,14 +94,14 @@ func (r *Router) reconstruct(parentEdge map[string]models.Rate, from, to string,
 
 //************ DIRECT *************
 
-func (r *Router) GetDirectRoute(from, to string, amount float64) (float64, float64) {
+func (r *Router) GetDirectRoute(from, to string, amount decimal.Decimal) (decimal.Decimal, decimal.Decimal) {
 	edges := r.Graph.Edges[from]
 	for _, edge := range edges {
 		if edge.To == to {
 			return edge.Apply(amount), edge.FixedFee
 		}
 	}
-	return 0, 0
+	return decimal.Zero, decimal.Zero
 }
 
 func CalculateConfidence(path []models.Rate) int {

@@ -1,27 +1,28 @@
 package models
 
 import (
-	"math"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 type CalculateRequest struct {
-	From   string  `json:"from"`
-	To     string  `json:"to"`
-	Amount float64 `json:"amount"`
+	From   string          `json:"from"`
+	To     string          `json:"to"`
+	Amount decimal.Decimal `json:"amount"`
 } // What we get from users
 
 type CalculateResponse struct {
-	Path        []Rate  `json:"path"`
-	FinalAmount float64 `json:"final_amount"`
+	Path        []Rate          `json:"path"`
+	FinalAmount decimal.Decimal `json:"final_amount"`
 } //What we send back to them
 
 type CalculateSummary struct {
-	SmartFinalAmount     float64 `json:"smart_final_amount"`
-	DirectFinalAmount    float64 `json:"direct_final_amount"`
-	TotalSavings         float64 `json:"total_savings"`
-	SavingsPercentage    float64 `json:"savings_percentage"`
-	TotalFixedFeesSource float64 `json:"total_fixed_fees_source_currency"`
+	SmartFinalAmount     decimal.Decimal `json:"smart_final_amount"`
+	DirectFinalAmount    decimal.Decimal `json:"direct_final_amount"`
+	TotalSavings         decimal.Decimal `json:"total_savings"`
+	SavingsPercentage    decimal.Decimal `json:"savings_percentage"`
+	TotalFixedFeesSource decimal.Decimal `json:"total_fixed_fees_source_currency"`
 }
 
 type Metadata struct {
@@ -37,7 +38,7 @@ type ProductionResponse struct {
 	Meta      Metadata         `json:"meta"`
 }
 
-// RoundToTwo rounds floats to 2 decimal places for financial reporting
-func RoundToTwo(val float64) float64 {
-	return math.Round(val*100) / 100
+// RoundToTwo rounds decimals to 2 decimal places for financial reporting
+func RoundToTwo(val decimal.Decimal) decimal.Decimal {
+	return val.Round(2)
 }

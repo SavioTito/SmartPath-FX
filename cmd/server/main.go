@@ -10,9 +10,12 @@ import (
 	"github.com/saviotito/currency-router/internal/engine"
 	"github.com/saviotito/currency-router/internal/models"
 	"github.com/saviotito/currency-router/internal/providers"
+	"github.com/shopspring/decimal"
 )
 
 func main() {
+	decimal.MarshalJSONWithoutQuotes = true
+
 	fmt.Println("--- Smart Currency Router Engine Starting ---")
 
 	// Load Environment Variables

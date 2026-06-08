@@ -3,11 +3,11 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"math"
 	"net/http"
 	"time"
 
 	"github.com/saviotito/currency-router/internal/models"
+	"github.com/shopspring/decimal"
 )
 
 type RouterHandler struct {
@@ -27,7 +27,7 @@ func (h *RouterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Amount <= 0 {
+	if req.Amount.LessThanOrEqual(decimal.Zero) {
 		http.Error(w, "Amount must be greater than 0", http.StatusBadRequest)
 		return
 	}
@@ -54,43 +54,54 @@ func (h *RouterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// --- PRECISION AUDIT: Keep raw float64 for all intermediate logic ---
+	// --- PRECISION AUDIT: All intermediate math runs in decimal.Decimal ---
 	smartAmountRaw := smartRoute.FinalAmount
 	directAmountRaw, _ := router.GetDirectRoute(req.From, req.To, req.Amount)
 
-	// Summarize Fees
-	var totalFeesSource float64
-	for i, edge := range smartRoute.Path {
-		if i == 0 {
-			totalFeesSource += edge.FixedFee
-		} else {
-			cumulativeRate := 1.0
-			for j := 0; j < i; j++ {
-				cumulativeRate *= smartRoute.Path[j].Value
-			}
-			totalFeesSource += (edge.FixedFee / cumulativeRate)
-		}
+	// Build currency -> cumulative-rate-from-source map by walking the path.
+	// nodeRate[c] = how many units of c equal 1 unit of request.From, derived
+	// from the chosen path's edge values. Lets us normalize a fee in ANY
+	// path-currency back to the request source, instead of assuming
+	// FeeCurrency == edge.From.
+	nodeRate := map[string]decimal.Decimal{
+		smartRoute.Path[0].From: decimal.NewFromInt(1),
+	}
+	cum := decimal.NewFromInt(1)
+	for _, edge := range smartRoute.Path {
+		cum = cum.Mul(edge.Value)
+		nodeRate[edge.To] = cum
 	}
 
-	// Savings Calculation
-	savingsRaw := smartAmountRaw - directAmountRaw
+	totalFeesSource := decimal.Zero
+	for _, edge := range smartRoute.Path {
+		feeCur := edge.FeeCurrency
+		if feeCur == "" {
+			feeCur = edge.From // legacy fallback
+		}
+		rate, ok := nodeRate[feeCur]
+		if !ok {
+			fmt.Printf("WARN: fee currency %s for %s->%s not on path, skipping fee normalization\n",
+				feeCur, edge.From, edge.To)
+			continue
+		}
+		totalFeesSource = totalFeesSource.Add(edge.FixedFee.Div(rate))
+	}
 
-	// Task 4: Efficiency Check (Buffer of 0.001%)
+	savingsRaw := smartAmountRaw.Sub(directAmountRaw)
+
 	efficiencyTag := "Standard"
-	savingsPct := 0.0
-	if directAmountRaw > 0 {
-		savingsPct = (savingsRaw / directAmountRaw) * 100
+	savingsPct := decimal.Zero
+	if directAmountRaw.GreaterThan(decimal.Zero) {
+		savingsPct = savingsRaw.Div(directAmountRaw).Mul(decimal.NewFromInt(100))
 
 		// If the difference is effectively zero (less than 0.001%), it's High Efficiency
-		if math.Abs(savingsPct) < 0.001 {
+		if savingsPct.Abs().LessThan(decimal.NewFromFloat(0.001)) {
 			efficiencyTag = "High Efficiency"
 		}
 
-		// Precision: 4 decimal places for the percentage
-		savingsPct = math.Round(savingsPct*10000) / 10000
+		savingsPct = savingsPct.Round(4)
 	}
 
-	// --- FINAL ROUNDING: Only happens here inside the JSON response builder ---
 	finalResponse := models.ProductionResponse{
 		Request: req,
 		Summary: models.CalculateSummary{
@@ -104,7 +115,7 @@ func (h *RouterHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Meta: models.Metadata{
 			ConfidenceScore: calculateConfidence(smartRoute.Path),
 			Timestamp:       time.Now(),
-			Efficiency:      efficiencyTag, // Ensure this exists in your models.Metadata struct!
+			Efficiency:      efficiencyTag,
 		},
 	}
 
