@@ -94,14 +94,40 @@ func (r *Router) reconstruct(parentEdge map[string]models.Rate, from, to string,
 
 //************ DIRECT *************
 
+// GetDirectRoute picks the single-hop edge that delivers the most after
+// fees, across all providers that quote this corridor. Returns (received,
+// fee in source currency).
 func (r *Router) GetDirectRoute(from, to string, amount decimal.Decimal) (decimal.Decimal, decimal.Decimal) {
-	edges := r.Graph.Edges[from]
-	for _, edge := range edges {
-		if edge.To == to {
-			return edge.Apply(amount), edge.FixedFee
+	best := decimal.Zero
+	bestFee := decimal.Zero
+	for _, edge := range r.Graph.Edges[from] {
+		if edge.To != to {
+			continue
+		}
+		out := edge.Apply(amount)
+		if out.GreaterThan(best) {
+			best = out
+			bestFee = edge.FeeFlat.Add(amount.Mul(edge.FeePercentage))
 		}
 	}
-	return decimal.Zero, decimal.Zero
+	return best, bestFee
+}
+
+// GetDirectMidMarket returns amount * the best direct-edge rate (no fee
+// deduction) across providers quoting the corridor — the figure a Wise-
+// style "mid-market" widget would show. Zero if no direct edge exists.
+func (r *Router) GetDirectMidMarket(from, to string, amount decimal.Decimal) decimal.Decimal {
+	best := decimal.Zero
+	for _, edge := range r.Graph.Edges[from] {
+		if edge.To != to {
+			continue
+		}
+		mid := amount.Mul(edge.Value)
+		if mid.GreaterThan(best) {
+			best = mid
+		}
+	}
+	return best
 }
 
 func CalculateConfidence(path []models.Rate) int {

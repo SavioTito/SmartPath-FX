@@ -18,11 +18,13 @@ type CalculateResponse struct {
 } //What we send back to them
 
 type CalculateSummary struct {
-	SmartFinalAmount     decimal.Decimal `json:"smart_final_amount"`
-	DirectFinalAmount    decimal.Decimal `json:"direct_final_amount"`
-	TotalSavings         decimal.Decimal `json:"total_savings"`
-	SavingsPercentage    decimal.Decimal `json:"savings_percentage"`
-	TotalFixedFeesSource decimal.Decimal `json:"total_fixed_fees_source_currency"`
+	SmartFinalAmount      decimal.Decimal `json:"smart_final_amount"`
+	SmartMidMarketAmount  decimal.Decimal `json:"smart_mid_market_amount"`
+	DirectFinalAmount     decimal.Decimal `json:"direct_final_amount"`
+	DirectMidMarketAmount decimal.Decimal `json:"direct_mid_market_amount"`
+	TotalSavings          decimal.Decimal `json:"total_savings"`
+	SavingsPercentage     decimal.Decimal `json:"savings_percentage"`
+	TotalFixedFeesSource  decimal.Decimal `json:"total_fixed_fees_source_currency"`
 }
 
 type Metadata struct {
