@@ -67,6 +67,54 @@ func (a *Aggregator) FetchSmartGraph(source, target string) *models.Graph {
 	return graph
 }
 
+// FetchFullGraph builds a graph for all pairs within bases — used by the
+// arbitrage scan endpoint where no specific source/target is known.
+func (a *Aggregator) FetchFullGraph(bases []string) *models.Graph {
+	graph := models.NewGraph()
+	var graphMu sync.Mutex
+
+	var wg sync.WaitGroup
+	for _, p := range a.providers {
+		for _, from := range bases {
+			for _, to := range bases {
+				if from == to {
+					continue
+				}
+				wg.Add(1)
+				go func(prov models.ExchangeProvider, from, to string) {
+					defer wg.Done()
+					quotes, err := prov.QuoteAllProviders(from, to)
+					if err != nil {
+						fmt.Printf("WARN: %s %s->%s quote failed, dropping edge group: %v\n", prov.Name(), from, to, err)
+						return
+					}
+					edges := make([]models.Rate, 0, len(quotes))
+					for _, q := range quotes {
+						edges = append(edges, models.Rate{
+							From:          from,
+							To:            to,
+							Value:         q.Rate,
+							FeeFlat:       q.Flat,
+							FeePercentage: q.Percentage,
+							FeeCurrency:   q.Currency,
+							Provider:      q.Provider,
+							LastUpdate:    q.FetchedAt,
+						})
+					}
+					graphMu.Lock()
+					for _, e := range edges {
+						graph.AddRate(e)
+					}
+					graphMu.Unlock()
+				}(p, from, to)
+			}
+		}
+	}
+
+	wg.Wait()
+	return graph
+}
+
 func dedup(in []string) []string {
 	seen := make(map[string]struct{}, len(in))
 	out := make([]string, 0, len(in))

@@ -1,20 +1,20 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/saviotito/currency-router/internal/engine"
 	"github.com/saviotito/currency-router/internal/models"
 	"github.com/saviotito/currency-router/internal/providers"
+	"github.com/saviotito/currency-router/internal/version"
 	"github.com/shopspring/decimal"
 )
 
 func main() {
 	decimal.MarshalJSONWithoutQuotes = true
-
-	fmt.Println("--- Smart Currency Router Engine Starting ---")
 
 	wise := providers.NewWiseProvider()
 
@@ -28,11 +28,28 @@ func main() {
 		Cache:      cache,
 	}
 
-	port := ":8080"
-	http.Handle("/calculate", handler)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	mux := http.NewServeMux()
+	mux.Handle("/calculate", handler)
+	mux.Handle("POST /arbitrage/scan", &engine.ArbitrageScanHandler{
+		Fetcher: aggregator,
+		Cache:   cache,
+	})
+	mux.Handle("GET /arbitrage/from/{currency}", &engine.ArbitrageFromHandler{
+		Fetcher: aggregator,
+		Cache:   cache,
+	})
+	mux.Handle("GET /healthz", &engine.HealthHandler{
+		StartTime: time.Now(),
+		Providers: providerList,
+		Cache:     cache,
+	})
 
-	fmt.Printf("Server listening on %s...\n", port)
-	if err := http.ListenAndServe(port, nil); err != nil {
+	log.Printf("SmartPath-FX %s listening on :%s (graph TTL 5m)", version.Version, port)
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

@@ -1,0 +1,36 @@
+Cache Missing: Building full arbitrage graph for [BTC EUR GBP USD]...
+Cache Missing: Building full arbitrage graph for [BTC EUR GBP USD]...
+Cache Missing: Building full arbitrage graph for [BTC EUR GBP USD]...
+Cache Missing: Building full arbitrage graph for [BTC EUR GBP USD]...
+Cache Missing: Building full arbitrage graph for [BTC EUR GBP USD]...
+Cache Missing: Building full arbitrage graph for [BTC EUR GBP USD]...
+Cache Missing: Building full arbitrage graph for [BTC EUR GBP USD]...
+Cache Missing: Building full arbitrage graph for [BTC EUR GBP USD]...
+Cache Missing: Building full arbitrage graph for [BTC EUR GBP USD]...
+goos: darwin
+goarch: amd64
+pkg: github.com/saviotito/currency-router/internal/engine
+cpu: Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz
+BenchmarkFindBestRoute/10-currencies-16         	   19646	    121920 ns/op	   45131 B/op	    1119 allocs/op
+BenchmarkFindBestRoute/10-currencies-16         	   19653	    121095 ns/op	   45141 B/op	    1119 allocs/op
+BenchmarkFindBestRoute/10-currencies-16         	   19873	    121284 ns/op	   45164 B/op	    1120 allocs/op
+BenchmarkFindBestRoute/50-currencies-16         	    1539	   1543093 ns/op	  589975 B/op	   11825 allocs/op
+BenchmarkFindBestRoute/50-currencies-16         	    1557	   1526547 ns/op	  589838 B/op	   11823 allocs/op
+BenchmarkFindBestRoute/50-currencies-16         	    1610	   1536974 ns/op	  590069 B/op	   11830 allocs/op
+BenchmarkFindBestRoute/100-currencies-16        	     430	   5802763 ns/op	 2124628 B/op	   37600 allocs/op
+BenchmarkFindBestRoute/100-currencies-16        	     379	   6421804 ns/op	 2124749 B/op	   37605 allocs/op
+BenchmarkFindBestRoute/100-currencies-16        	     411	   5861141 ns/op	 2124602 B/op	   37597 allocs/op
+BenchmarkDetectCycles/10-currencies-16          	   13556	    177761 ns/op	   53080 B/op	    1550 allocs/op
+BenchmarkDetectCycles/10-currencies-16          	   15740	    151718 ns/op	   42566 B/op	    1270 allocs/op
+BenchmarkDetectCycles/10-currencies-16          	   12210	    197259 ns/op	   55963 B/op	    1681 allocs/op
+BenchmarkDetectCycles/30-currencies-16          	    4443	    572118 ns/op	  154261 B/op	    4526 allocs/op
+BenchmarkDetectCycles/30-currencies-16          	    3949	    608729 ns/op	  160309 B/op	    4712 allocs/op
+BenchmarkDetectCycles/30-currencies-16          	    4459	    571348 ns/op	  137228 B/op	    4015 allocs/op
+BenchmarkDetectCycles/100-currencies-16         	    1275	   1937504 ns/op	  462020 B/op	   13561 allocs/op
+BenchmarkDetectCycles/100-currencies-16         	    1256	   2143734 ns/op	  459185 B/op	   13474 allocs/op
+BenchmarkDetectCycles/100-currencies-16         	    1066	   2289571 ns/op	  473869 B/op	   13920 allocs/op
+BenchmarkAggregatorMerge-16                     	  141382	     16838 ns/op	   18664 B/op	      19 allocs/op
+BenchmarkAggregatorMerge-16                     	  149734	     17528 ns/op	   18664 B/op	      19 allocs/op
+BenchmarkAggregatorMerge-16                     	  146968	     16763 ns/op	   18664 B/op	      19 allocs/op
+PASS
+ok  	github.com/saviotito/currency-router/internal/engine	52.290s

@@ -1,0 +1,39 @@
+goos: darwin
+goarch: amd64
+pkg: github.com/saviotito/currency-router/internal/engine
+cpu: Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz
+                                │ /Users/titadas/Documents/Development/Mobile/currency-finder/currency-router/bench/benchmarks.txt │
+                                │                                              sec/op                                              │
+FindBestRoute/10-currencies-16                                                                                        121.3µ ± ∞ ¹
+FindBestRoute/50-currencies-16                                                                                        1.537m ± ∞ ¹
+FindBestRoute/100-currencies-16                                                                                       5.861m ± ∞ ¹
+DetectCycles/10-currencies-16                                                                                         177.8µ ± ∞ ¹
+DetectCycles/30-currencies-16                                                                                         572.1µ ± ∞ ¹
+DetectCycles/100-currencies-16                                                                                        2.144m ± ∞ ¹
+AggregatorMerge-16                                                                                                    16.84µ ± ∞ ¹
+geomean                                                                                                               454.6µ
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                │ /Users/titadas/Documents/Development/Mobile/currency-finder/currency-router/bench/benchmarks.txt │
+                                │                                               B/op                                               │
+FindBestRoute/10-currencies-16                                                                                       44.08Ki ± ∞ ¹
+FindBestRoute/50-currencies-16                                                                                       576.1Ki ± ∞ ¹
+FindBestRoute/100-currencies-16                                                                                      2.026Mi ± ∞ ¹
+DetectCycles/10-currencies-16                                                                                        51.84Ki ± ∞ ¹
+DetectCycles/30-currencies-16                                                                                        150.6Ki ± ∞ ¹
+DetectCycles/100-currencies-16                                                                                       451.2Ki ± ∞ ¹
+AggregatorMerge-16                                                                                                   18.23Ki ± ∞ ¹
+geomean                                                                                                              165.4Ki
+¹ need >= 6 samples for confidence interval at level 0.95
+
+                                │ /Users/titadas/Documents/Development/Mobile/currency-finder/currency-router/bench/benchmarks.txt │
+                                │                                            allocs/op                                             │
+FindBestRoute/10-currencies-16                                                                                        1.119k ± ∞ ¹
+FindBestRoute/50-currencies-16                                                                                        11.82k ± ∞ ¹
+FindBestRoute/100-currencies-16                                                                                       37.60k ± ∞ ¹
+DetectCycles/10-currencies-16                                                                                         1.550k ± ∞ ¹
+DetectCycles/30-currencies-16                                                                                         4.526k ± ∞ ¹
+DetectCycles/100-currencies-16                                                                                        13.56k ± ∞ ¹
+AggregatorMerge-16                                                                                                     19.00 ± ∞ ¹
+geomean                                                                                                               2.642k
+¹ need >= 6 samples for confidence interval at level 0.95

@@ -187,6 +187,7 @@ func indexByAlias(qs []providerQuote) map[string]providerQuote {
 // sourceCurrency. Throttled via comparisonSem; retries 429 with jittered
 // backoff.
 func (w *WiseProvider) probeComparison(source, target string, sendAmount decimal.Decimal) ([]providerQuote, error) {
+	// Wise /v4/comparisons/ is a public endpoint — no API key required.
 	comparisonSem <- struct{}{}
 	defer func() { <-comparisonSem }()
 
